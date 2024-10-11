@@ -24,13 +24,13 @@ console.log(isPalindrome('Лёша на полке клопа нашёл '));
 let number = 15;
 let taskResult;
 
-function f(number) {
+function extractNumber(number) {
   if (number % 3 === 0 && number & 5 !== 0) {
-    return taskResult = 'Fizz'
+    return taskResult = 'Fizz';
   } else if (number % 3 !== 0 && number % 5 === 0) {
-    return taskResult = 'Buzz'
-  } else if (number % 3 === 0 && number % 5 ===) {
-    return taskResult = 'FizzBuzz'
+    return taskResult = 'Buzz';
+  } else if (number % 3 === 0 && number % 5 === 0) {
+    return taskResult = 'FizzBuzz';
   }
-  return number
+  return number;
 }
