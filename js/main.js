@@ -67,4 +67,5 @@ const getPhoto = () => Array.from(
   (_, photoIndex) => createPhoto(photoIndex + 1)
 );
 
+
 getPhoto();
