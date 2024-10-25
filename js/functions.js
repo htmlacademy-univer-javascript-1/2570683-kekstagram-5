@@ -1,36 +1,20 @@
-function checkLine (line, length) {
-  return line.length <= length;
-}
-
-console.log(checkLine('проверяемая строка', 20));
-console.log(checkLine('проверяемая строка', 18));
-console.log(checkLine('проверяемая строка', 10));
-
-function isPalindrome (line) {
-  const string = line.replaceAll(' ', '').toLowerCase();
-  for (let i = 0; i < string.length / 2; i++) {
-    if (string.at(i) !== string.at(-i - 1)) {
-      return false;
-    }
+/* eslint-disable no-console */
+const isMeetingWithinWorkingHours = (startWork, endWork, startMeeting, meetingDuration) => {
+  function timeToMinutes(time) {
+    const [hours, minutes] = time.split(':').map(Number);
+    return hours * 60 + minutes;
   }
-  return true;
-}
 
-console.log(isPalindrome('топот'));
-console.log(isPalindrome('ДовОд'));
-console.log(isPalindrome('Кекс'));
-console.log(isPalindrome('Лёша на полке клопа нашёл '));
+  const startWorkMinutes = timeToMinutes(startWork);
+  const endWorkMinutes = timeToMinutes(endWork);
+  const startMeetingMinutes = timeToMinutes(startMeeting);
+  const endMeetingMinutes = startMeetingMinutes + meetingDuration;
 
-let number = 15;
-let taskResult;
+  return (startMeetingMinutes >= startWorkMinutes) && (endMeetingMinutes <= endWorkMinutes);
+};
 
-function extractNumber(number) {
-  if (number % 3 === 0 && number & 5 !== 0) {
-    return taskResult = 'Fizz';
-  } else if (number % 3 !== 0 && number % 5 === 0) {
-    return taskResult = 'Buzz';
-  } else if (number % 3 === 0 && number % 5 === 0) {
-    return taskResult = 'FizzBuzz';
-  }
-  return number;
-}
+console.log(isMeetingWithinWorkingHours('08:00', '17:30', '14:00', 90)); // true
+console.log(isMeetingWithinWorkingHours('8:0', '10:0', '8:0', 120));     // true
+console.log(isMeetingWithinWorkingHours('08:00', '14:30', '14:00', 90)); // false
+console.log(isMeetingWithinWorkingHours('14:00', '17:30', '08:0', 90));  // false
+console.log(isMeetingWithinWorkingHours('8:00', '17:30', '08:00', 900)); // false
