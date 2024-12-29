@@ -3,6 +3,11 @@ import { sendData } from './api.js';
 const MAX_HASHTAGS = 5;
 const MAX_DESCRIPTION_LENGTH = 140;
 const HASHTAG = /^#[A-Za-z0-9а-яё]{1,19}$/i;
+const SCALE_STEP = 25;
+const MIN_SCALE = 25;
+const MAX_SCALE = 100;
+const DEFAULT_SCALE = 100;
+const FILE_TYPES = ['jpg', 'jpeg', 'png'];
 
 const FormErrors = {
   COUNT_EXCEEDED: `Максимальное количество хэштегов — ${MAX_HASHTAGS}`,
@@ -10,11 +15,6 @@ const FormErrors = {
   INCORRECT_HASHTAG: 'Введен невалидный хэштег',
   LONG_DESCRIPTION: `Описание должно быть не длинее ${MAX_DESCRIPTION_LENGTH} символов`
 };
-
-const SCALE_STEP = 25;
-const MIN_SCALE = 25;
-const MAX_SCALE = 100;
-const DEFAULT_SCALE = 100;
 
 const EffectSetups = {
   none: {
@@ -63,8 +63,6 @@ const EffectSetups = {
 
 const DEFAULT_EFFECT = EffectSetups.none;
 let chosenEffect = DEFAULT_EFFECT;
-
-const FILE_TYPES = ['jpg', 'jpeg', 'png'];
 
 const form = document.querySelector('.img-upload__form');
 const fileField = form.querySelector('.img-upload__input');
@@ -133,7 +131,7 @@ const updateEffect = () => {
     effectLevel.classList.remove('hidden');
     const effectValue = effectLevelSlider.noUiSlider.get();
     imgUploadPreview.style.filter = `${chosenEffect.filter}(${effectValue}${chosenEffect.unit})`;
-    effectLevelValue.value = effectValue;
+    effectLevelValue.value = parseFloat(effectValue).toFixed(2);
   }
 };
 
@@ -154,6 +152,14 @@ const onEffectChange = (evt) => {
 
 const resetEffects = () => {
   chosenEffect = DEFAULT_EFFECT;
+  effectLevelSlider.noUiSlider.updateOptions({
+    range: {
+      min: DEFAULT_EFFECT.min,
+      max: DEFAULT_EFFECT.max
+    },
+    step: DEFAULT_EFFECT.step,
+    start: DEFAULT_EFFECT.max
+  });
   updateEffect();
 };
 
@@ -174,6 +180,7 @@ const closeForm = () => {
   document.removeEventListener('keydown', formPressESCHandler);
   resetScale();
   resetEffects();
+  hideMessage();
 };
 
 const isValidType = (file) => {
@@ -205,17 +212,19 @@ const formFileIsSelectedHandler = (evt) => {
   }
 };
 
-const onDocumentKeydown = (evt) => {
-  if (evt.key === 'Escape' && isCursorInInputField()) {
-    evt.stopPropagation();
+function onDocumentKeydown(evt) {
+  if (evt.key === 'Escape') {
+    hideMessage();
   }
-};
+}
 
 function hideMessage() {
   const messageElement = document.querySelector('.success') || document.querySelector('.error');
-  messageElement.remove();
-  document.removeEventListener('keydown', onDocumentKeydown);
-  body.removeEventListener('click', onBodyCLick);
+  if (messageElement) {
+    messageElement.remove();
+    document.removeEventListener('keydown', onDocumentKeydown);
+    body.removeEventListener('click', onBodyCLick);
+  }
 }
 
 function onBodyCLick(evt) {
@@ -246,6 +255,10 @@ const showErrorMessage = (message) => {
 
 const onFormSubmit = (evt) => {
   evt.preventDefault();
+  const isValid = pristine.validate();
+  if (!isValid) {
+    return;
+  }
   submitButton.disabled = true;
 
   const formData = new FormData(evt.target);
@@ -288,3 +301,9 @@ pristine.addValidator(hashtagsField, validateHashtags, FormErrors.INCORRECT_HASH
 pristine.addValidator(hashtagsField, validateHashtagCount, FormErrors.COUNT_EXCEEDED);
 
 form.addEventListener('submit', onFormSubmit);
+
+document.addEventListener('click', (evt) => {
+  if (evt.target.classList.contains('error__button')) {
+    hideMessage();
+  }
+});
