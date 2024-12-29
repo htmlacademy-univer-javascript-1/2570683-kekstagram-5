@@ -1,3 +1,5 @@
+const COMMENTS_PER_PAGE = 5;
+
 const pictureContainer = document.querySelector('.big-picture');
 const pictureImage = document.querySelector('.big-picture__img img');
 const pictureCaption = document.querySelector('.social__caption');
@@ -11,8 +13,6 @@ const commentsLoader = document.querySelector('.comments-loader');
 
 let currentComments = [];
 let commentsShown = 0;
-
-const COMMENTS_PER_PAGE = 5;
 
 const onCloseButtonClick = () => {
   closeBigPicture();

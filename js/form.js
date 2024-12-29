@@ -1,68 +1,8 @@
 import { sendData } from './api.js';
-
-const MAX_HASHTAGS = 5;
-const MAX_DESCRIPTION_LENGTH = 140;
-const HASHTAG = /^#[A-Za-z0-9а-яё]{1,19}$/i;
-
-const FormErrors = {
-  COUNT_EXCEEDED: `Максимальное количество хэштегов — ${MAX_HASHTAGS}`,
-  UNIQUE_HASHTAGS: 'Хэш-теги повторяются',
-  INCORRECT_HASHTAG: 'Введен невалидный хэштег',
-  LONG_DESCRIPTION: `Описание должно быть не длинее ${MAX_DESCRIPTION_LENGTH} символов`
-};
-
-const SCALE_STEP = 25;
-const MIN_SCALE = 25;
-const MAX_SCALE = 100;
-const DEFAULT_SCALE = 100;
-
-const EffectSetups = {
-  none: {
-    filter: '',
-    min: 0,
-    max: 100,
-    step: 1,
-    unit: ''
-  },
-  chrome: {
-    filter: 'grayscale',
-    min: 0,
-    max: 1,
-    step: 0.1,
-    unit: ''
-  },
-  sepia: {
-    filter: 'sepia',
-    min: 0,
-    max: 1,
-    step: 0.1,
-    unit: ''
-  },
-  marvin: {
-    filter: 'invert',
-    min: 0,
-    max: 100,
-    step: 1,
-    unit: '%'
-  },
-  phobos: {
-    filter: 'blur',
-    min: 0,
-    max: 3,
-    step: 0.1,
-    unit: 'px'
-  },
-  heat: {
-    filter: 'brightness',
-    min: 1,
-    max: 3,
-    step: 0.1,
-    unit: ''
-  }
-};
-
-const DEFAULT_EFFECT = EffectSetups.none;
-let chosenEffect = DEFAULT_EFFECT;
+import { FormErrors, validateDescriptionLength, validateHashtagCount, validateHashtags, validateUniqueHashtags } from './validation.js';
+import { updateEffect, onEffectChange, resetEffects } from './effects.js';
+import { onScaleControlSmallerClick, onScaleControlBiggerClick, resetScale } from './scale.js';
+import { showSuccessMessage, showErrorMessage, hideMessage, onDocumentKeydown } from './messages.js';
 
 const FILE_TYPES = ['jpg', 'jpeg', 'png'];
 
@@ -89,78 +29,11 @@ const pristine = new Pristine(form, {
   errorTextParent: 'img-upload__field-wrapper',
 });
 
-const validateDescriptionLength = (value) => value.length <= MAX_DESCRIPTION_LENGTH;
-
-const splitHashtags = (value) => value.trim().split(/\s+/).filter((tag) => Boolean(tag.length));
-
 const isCursorInInputField = () => document.activeElement === hashtagsField || document.activeElement === descriptionField;
-
-const validateHashtagCount = (value) => splitHashtags(value).length <= MAX_HASHTAGS;
-
-const validateHashtags = (value) => splitHashtags(value).every((tag) => HASHTAG.test(tag));
-
-const validateUniqueHashtags = (value) => {
-  const hashtags = splitHashtags(value).map((tag) => tag.toLowerCase());
-  return hashtags.length === new Set(hashtags).size;
-};
-
-const updateScale = (value) => {
-  scaleControlValue.value = `${value}%`;
-  imgUploadPreview.style.transform = `scale(${value / 100})`;
-};
-
-const onScaleControlSmallerClick = () => {
-  const currentValue = parseInt(scaleControlValue.value, 10);
-  const newValue = Math.max(currentValue - SCALE_STEP, MIN_SCALE);
-  updateScale(newValue);
-};
-
-const onScaleControlBiggerClick = () => {
-  const currentValue = parseInt(scaleControlValue.value, 10);
-  const newValue = Math.min(currentValue + SCALE_STEP, MAX_SCALE);
-  updateScale(newValue);
-};
-
-const resetScale = () => {
-  updateScale(DEFAULT_SCALE);
-};
-
-const updateEffect = () => {
-  if (chosenEffect === EffectSetups.none) {
-    imgUploadPreview.style.filter = '';
-    effectLevel.classList.add('hidden');
-  } else {
-    effectLevel.classList.remove('hidden');
-    const effectValue = effectLevelSlider.noUiSlider.get();
-    imgUploadPreview.style.filter = `${chosenEffect.filter}(${effectValue}${chosenEffect.unit})`;
-    effectLevelValue.value = effectValue;
-  }
-};
-
-const onEffectChange = (evt) => {
-  if (evt.target.matches('input[type="radio"]')) {
-    chosenEffect = EffectSetups[evt.target.value];
-    effectLevelSlider.noUiSlider.updateOptions({
-      range: {
-        min: chosenEffect.min,
-        max: chosenEffect.max
-      },
-      step: chosenEffect.step,
-      start: chosenEffect.max
-    });
-    updateEffect();
-  }
-};
-
-const resetEffects = () => {
-  chosenEffect = DEFAULT_EFFECT;
-  updateEffect();
-};
 
 const formPressESCHandler = (evt) => {
   if (evt.key === 'Escape' && !isCursorInInputField()) {
     evt.preventDefault();
-    // eslint-disable-next-line no-use-before-define
     closeForm();
   }
 };
@@ -172,8 +45,9 @@ const closeForm = () => {
   overlay.classList.add('hidden');
   body.classList.remove('modal-open');
   document.removeEventListener('keydown', formPressESCHandler);
-  resetScale();
-  resetEffects();
+  resetScale(scaleControlValue, imgUploadPreview);
+  resetEffects(effectLevelSlider);
+  hideMessage();
 };
 
 const isValidType = (file) => {
@@ -205,47 +79,12 @@ const formFileIsSelectedHandler = (evt) => {
   }
 };
 
-const onDocumentKeydown = (evt) => {
-  if (evt.key === 'Escape' && isCursorInInputField()) {
-    evt.stopPropagation();
-  }
-};
-
-function hideMessage() {
-  const messageElement = document.querySelector('.success') || document.querySelector('.error');
-  messageElement.remove();
-  document.removeEventListener('keydown', onDocumentKeydown);
-  body.removeEventListener('click', onBodyCLick);
-}
-
-function onBodyCLick(evt) {
-  if (
-    evt.target.closest('.success__inner') || evt.target.closest('.error__inner')
-  ) {
-    return;
-  }
-  hideMessage();
-}
-
-function showMessage(messageElement, closeButtonClass) {
-  body.append(messageElement);
-  document.addEventListener('keydown', onDocumentKeydown);
-  body.addEventListener('click', onBodyCLick);
-  messageElement.querySelector(closeButtonClass).addEventListener('click', hideMessage);
-}
-
-const showSuccessMessage = () => {
-  showMessage(successMessage, '.success__button');
-};
-
-const showErrorMessage = (message) => {
-  const errorElement = errorMessage.cloneNode(true);
-  errorElement.querySelector('.error__title').textContent = message;
-  showMessage(errorElement, '.error__button');
-};
-
 const onFormSubmit = (evt) => {
   evt.preventDefault();
+  const isValid = pristine.validate();
+  if (!isValid) {
+    return;
+  }
   submitButton.disabled = true;
 
   const formData = new FormData(evt.target);
@@ -253,10 +92,10 @@ const onFormSubmit = (evt) => {
   sendData(formData)
     .then(() => {
       closeForm();
-      showSuccessMessage();
+      showSuccessMessage(successMessage);
     })
     .catch((error) => {
-      showErrorMessage(error.message);
+      showErrorMessage(errorMessage, error.message);
     })
     .finally(() => {
       submitButton.disabled = false;
@@ -265,22 +104,22 @@ const onFormSubmit = (evt) => {
 
 fileField.addEventListener('change', formFileIsSelectedHandler);
 closeButton.addEventListener('click', closeForm);
-scaleControlSmaller.addEventListener('click', onScaleControlSmallerClick);
-scaleControlBigger.addEventListener('click', onScaleControlBiggerClick);
+scaleControlSmaller.addEventListener('click', () => onScaleControlSmallerClick(scaleControlValue, imgUploadPreview));
+scaleControlBigger.addEventListener('click', () => onScaleControlBiggerClick(scaleControlValue, imgUploadPreview));
 document.addEventListener('keydown', onDocumentKeydown);
 
 noUiSlider.create(effectLevelSlider, {
   range: {
-    min: DEFAULT_EFFECT.min,
-    max: DEFAULT_EFFECT.max
+    min: 0,
+    max: 100
   },
-  start: DEFAULT_EFFECT.max,
-  step: DEFAULT_EFFECT.step,
+  start: 100,
+  step: 1,
   connect: 'lower'
 });
 
-effectLevelSlider.noUiSlider.on('update', () => updateEffect());
-document.querySelector('.effects__list').addEventListener('change', onEffectChange);
+effectLevelSlider.noUiSlider.on('update', () => updateEffect(effectLevelSlider, imgUploadPreview, effectLevel, effectLevelValue));
+document.querySelector('.effects__list').addEventListener('change', (evt) => onEffectChange(evt, effectLevelSlider));
 
 pristine.addValidator(descriptionField, validateDescriptionLength, FormErrors.LONG_DESCRIPTION);
 pristine.addValidator(hashtagsField, validateUniqueHashtags, FormErrors.UNIQUE_HASHTAGS);
@@ -288,3 +127,9 @@ pristine.addValidator(hashtagsField, validateHashtags, FormErrors.INCORRECT_HASH
 pristine.addValidator(hashtagsField, validateHashtagCount, FormErrors.COUNT_EXCEEDED);
 
 form.addEventListener('submit', onFormSubmit);
+
+document.addEventListener('click', (evt) => {
+  if (evt.target.classList.contains('error__button')) {
+    hideMessage();
+  }
+});

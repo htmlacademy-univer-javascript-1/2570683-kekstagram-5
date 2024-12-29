@@ -1,13 +1,14 @@
 import { debounce } from './util.js';
 
-const PICTURE_COUNT = 25;
+const RANDOM_PICTURE_COUNT = 10;
+const filterElement = document.querySelector('.img-filters');
+
 const Filter = {
   DEFAULT: 'filter-default',
   RANDOM: 'filter-random',
   DISCUSSED: 'filter-discussed',
 };
 
-const filterElement = document.querySelector('.img-filters');
 let currentFilter = Filter.DEFAULT;
 let pictures = [];
 
@@ -19,7 +20,7 @@ const sortByComments = (pictureA, pictureB) =>
 const getFilteredPictures = () => {
   switch (currentFilter) {
     case Filter.RANDOM:
-      return [...pictures].sort(sortRandomly).slice(0, PICTURE_COUNT);
+      return [...pictures].sort(sortRandomly).slice(0, RANDOM_PICTURE_COUNT);
     case Filter.DISCUSSED:
       return [...pictures].sort(sortByComments);
     default:
